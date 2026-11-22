@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>СТРОЙHUB · Работы и поставки</title>
+<style>
+
+*{box-sizing:border-box}body{margin:0;background:#121416;color:#f4f4f5;font-family:system-ui,Arial,sans-serif}main{width:100%;overflow:auto}svg{display:block;width:100%;height:auto;margin:auto;max-width:1800px}g[role=button]{cursor:pointer;outline:none}g[role=button]:hover>.surface{filter:brightness(.97)}g[role=button]:focus-visible>.focus{stroke:#36d3e6;stroke-width:3;fill:none}.smallscreen{display:none}@media(max-width:700px){body[data-screen=board] svg{width:1100px}body[data-screen=board] .smallscreen{display:block;padding:10px 16px;background:#1c1e20;font-size:13px}body[data-screen=login] svg,body[data-screen=work] svg,body[data-screen=detail] svg,body[data-screen=spec] svg{width:100%;min-height:90vh}}
+
+g[data-act^="work-"]:hover>.focus,g[data-act^="part-"]:hover>.focus,g[data-act^="toggle-"]:hover>.focus{fill:rgba(57,209,203,.06);stroke:#447674}
+.import-view{max-width:850px;margin:40px auto;padding:0 24px 40px}.import-view h1{font-size:clamp(26px,4vw,40px);line-height:1.1}.import-view h2{font-size:20px}.import-view p{color:#b1b5ba;line-height:1.55}.import-view article{padding:22px;background:#1c1e20;border:1px solid #36393d;border-radius:12px;margin:16px 0}.import-view button,.import-view a{display:inline-block;background:#263637;border:1px solid #3c5354;color:#74e3dd;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.import-view button:hover,.import-view a:hover{background:#31474a}.import-view button:focus-visible,.import-view a:focus-visible{outline:2px solid #39d1cb}.import-view strong{color:#f4f4f5}.import-view .warning{border-left:3px solid #f5c65b}.import-view .planrow{display:grid;grid-template-columns:1fr 120px 120px;gap:10px;padding:12px 2px;border-bottom:1px solid #36393d;align-items:center}.import-view .planrow button{text-align:left}.import-view .tablehead{color:#b1b5ba}.import-view .btnline{display:flex;flex-wrap:wrap;gap:12px;align-items:center}@media(max-width:650px){.import-view{margin:22px auto;padding:0 14px 22px}.import-view article{padding:14px}.import-view .planrow{grid-template-columns:1fr 50px 50px;font-size:13px}}
+.timeline{overflow:auto;background:#181a1c;border-radius:8px;margin:16px 0}.axis,.lane{position:relative;height:38px;border-bottom:1px solid #34373b}.axis span,.lane button{position:absolute;top:6px;white-space:nowrap}.axis span{font-size:13px;color:#b1b5ba}.lane button{height:26px;font-size:13px;line-height:22px;padding:0 5px;overflow:hidden;text-overflow:ellipsis;text-align:left}.import-view [aria-pressed=true]{background:#276460;color:white}
+</style>
+<body><aside class="smallscreen">Проведите влево, чтобы посмотреть календарь.</aside><main id="app"></main>
+<script>
+const accent='#39d1cb',ink='#f4f4f5',muted='#b1b5ba',line='#36393d',faint='#121416',red='#ff827d',amber='#f5c65b',green='#77d7a7',surface='#1c1e20';
+const txt=(x,y,s,size=16,weight=400,color=ink,anchor='start')=>'<text x="'+x+'" y="'+y+'" font-size="'+size+'" font-weight="'+weight+'" fill="'+color+'" text-anchor="'+anchor+'">'+s+'</text>';
+const box=(x,y,w,h,fill,rx=0,stroke='none',cls='')=>'<rect class="'+cls+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+rx+'" fill="'+fill+'" stroke="'+stroke+'"/>';
+const rule=(x,y,x2,y2,c=line,dash='')=>'<line x1="'+x+'" y1="'+y+'" x2="'+x2+'" y2="'+y2+'" stroke="'+c+'" stroke-dasharray="'+dash+'"/>';
+const dot=(x,y,r,c)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+c+'"/>';
+const diamond=(x,y,c)=>'<path d="M '+x+' '+(y-6)+' l 6 6 -6 6 -6 -6 Z" fill="'+c+'"/>';
+function action(id,label,x,y,w,h,inside){return '<g tabindex="0" role="button" aria-label="'+label+'" data-act="'+id+'">'+box(x,y,w,h,'transparent',6,'none','surface')+inside+box(x+1,y+1,w-2,h-2,'transparent',6,'none','focus')+'</g>'}
+function pill(x,y,w,label,col,bg){return box(x,y,w,26,bg,13)+dot(x+13,y+13,3,col)+txt(x+23,y+18,label,12,700,col)}
+function logo(x,y,scale=1){
+ return '<g transform="translate('+x+' '+y+') scale('+scale+')"><g stroke="#36c6e4" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="0" width="17" height="25" rx="2"/><path d="M6 12H3Q1 12 1 14V25H6 M23 10H26Q28 10 28 12V25H23 M11 5H18 M11 10H18 M11 15H18 M11 20H18"/></g><text x="37" y="21" font-size="24" font-weight="700" fill="#fafafa">СТРОЙ<tspan fill="#36c6e4">HUB</tspan></text></g>'
+}
+const works=[
+ {id:'slab',name:'Плита перекрытия 1-го этажа',phase:'Монолит',start:7,end:18,status:'ok',parts:[['Арматура А500С · Ø12','12 из 12 т',7,6,'done'],['Бетон В25 · партия 1','80 из 80 м³',11,11,'done']]},
+ {id:'cols',name:'Колонны 2-го этажа',phase:'Монолит',start:14,end:24,status:'risk',parts:[['Опалубка колонн','20 из 60 шт.',16,21,'risk'],['Арматура А500С · Ø20','0 из 8 т',14,13,'ok']]},
+ {id:'walls',name:'Кладка наружных стен',phase:'Ограждающие конструкции',start:21,end:32,status:'ok',parts:[['Газобетон D500','0 из 120 м³',21,19,'ok'],['Клей для блоков','0 из 90 меш.',23,22,'ok']]},
+ {id:'vent',name:'Вентиляция и насосное оборудование',phase:'Инженерные сети',start:28,end:46,status:'attention',parts:[['Вентиляционная установка П1','0 из 1 компл.',42,39,'ok'],['Насосная станция','0 из 1 компл.',35,null,'attention']]}
+];
+const labels={ok:['В графике',green,'#203a30'],risk:['Есть риск',red,'#42282a'],attention:['Уточнить',amber,'#3d3320']};
+let filter='all', expanded=new Set(['cols']),selected=works[1],part=selected.parts[0];
+const date=n=>n==null?'уточняется':String(n>30?n-30:n).padStart(2,'0')+(n>30?'.10':'.09');
+const calendarX=n=>475+(n-6)*21.5;
+function login(narrow){
+ const W=narrow?420:1440,H=narrow?720:850,width=narrow?380:448,x=(W-width)/2,y=narrow?165:226,pad=narrow?24:32,left=x+pad,fieldWidth=width-2*pad;
+ let s=box(0,0,W,H,'#27272a')+logo(W/2-102,y-102,1.19)+txt(W/2,y-43,'МЕНЬШЕ СВОДКИ — БОЛЬШЕ СТРОЙКИ',14,400,'#a1a1aa','middle');
+ s+=box(x,y,width,416,'#18181b',14,'#434346')+txt(left,y+53,'Вход в систему',22,700)+txt(left,y+83,'Демонстрационный вход · Корпус А',15,400,muted);
+ s+=txt(left,y+126,'Email',15,400,'#d4d4d8')+box(left,y+141,fieldWidth,50,'#27272a',8,'#414145')+txt(left+17,y+172,'demo@stroyhub.example',16,400,'#b1b1b9');
+ s+=txt(left,y+226,'Пароль',15,400,'#d4d4d8')+box(left,y+240,fieldWidth,50,'#27272a',8,'#414145')+txt(left+17,y+271,'••••••••',16,400,'#b1b1b9');
+ s+=action('enter','Войти в демо',left,y+310,fieldWidth,50,box(left,y+310,fieldWidth,50,'#32b4d1',8)+txt(W/2,y+341,'Войти в демо',16,700,'#091e25','middle'))+txt(W/2,y+389,'Данные для просмотра уже заполнены',13,400,muted,'middle');
+ return {w:W,h:H,s}
+}
+function topbar(){return box(0,0,1440,66,'#171819')+logo(42,20,1)+rule(237,18,237,48)+txt(265,41,'Корпус А',15,700,ink)+txt(375,41,'График',15,700,accent)+box(375,62,53,3,accent,1)+action('imports','Импорт СМР из Excel',466,12,145,42,txt(475,41,'Импорт СМР',15,700,muted))+action('exit','Выйти в демовход',1250,14,146,38,box(1250,14,146,38,'#242729',8,line)+txt(1323,38,'Выйти из демо',13,700,muted,'middle'))}
+function board(){
+ let s=topbar()+txt(42,127,'График работ и поставок',40,700)+txt(44,161,'Корпус А   /   Состояние на 12 сентября 2026',16,400,muted);
+ s+=box(42,190,720,124,surface,10,line)+txt(65,219,'РИСК ПОСТАВКИ',12,700,red)+txt(65,252,'Колонны 2-го этажа',24,700)+txt(65,286,'Опалубка нужна 16 сентября, остаток ожидается 21-го.',15,400,muted);
+ s+=action('risk-detail','Подробнее об опалубке',610,213,132,44,box(610,213,132,44,'#273234',7)+txt(676,241,'Разобрать риск',14,700,accent,'middle'));
+ s+=box(776,190,306,124,surface,10,line)+txt(799,219,'ПРИНЯТО НА ОБЪЕКТЕ',12,700,muted)+txt(799,261,'20 из 60 шт.',26,700)+box(799,279,256,6,'#34383b',3)+box(799,279,85,6,accent,3);
+ s+=box(1096,190,302,124,surface,10,line)+txt(1119,219,'ОТКЛОНЕНИЕ ПОСТАВКИ',12,700,muted)+txt(1119,261,'+5 дней',28,700,red)+txt(1119,288,'Осталось получить 40 шт.',15,400,muted);
+ const found=works.filter(w=>filter==='all'||w.status===filter);let rows=found.reduce((v,w)=>v+1+(expanded.has(w.id)?w.parts.length:0),0);
+ let y=442, end=y+rows*54;
+ s+=box(42,338,1356,end-338+64,surface,15,line)+txt(65,379,'Календарь объекта',23,700)+txt(335,378,'Нажмите на работу или поставку для подробностей',15,400,muted);
+ const filters=[['all','Все работы',136],['risk','С риском',124],['attention','Уточнить',126]];
+ let fx=975;for(const [k,v,w] of filters){s+=action('filter-'+k,v,fx,355,w,34,box(fx,355,w,34,filter===k?'#254041':'#27292c',8)+txt(fx+w/2,377,v,13,700,filter===k?accent:muted,'middle'));fx+=w+5}
+ s+=box(43,400,1354,42,'#25272a')+txt(66,426,'Работа / материал',14,700,muted)+txt(346,426,'Статус',13,700,muted);
+ for(const [n,l] of [[7,'07 сен'],[14,'14 сен'],[21,'21 сен'],[28,'28 сен'],[35,'05 окт'],[42,'12 окт']])s+=txt(calendarX(n),426,l,13,700,muted,'middle');
+ const guides=(yy)=>{let g='';for(let n of [7,14,21,28,35,42])g+=rule(calendarX(n),yy,calendarX(n),yy+54,'#343639','3 4');return g};
+ for(const w of found){
+ const open=expanded.has(w.id),lab=labels[w.status],xx=calendarX(w.start),barEnd=calendarX(w.end)+10;
+ s+=(w.status==='risk'?box(43,y,1354,54,'#282223'):'')+guides(y);
+ s+=action('toggle-'+w.id,(open?'Свернуть ':'Раскрыть ')+w.name,43,y,44,54,txt(65,y+32,open?'⌄':'›',22,700,muted));
+ s+=action('work-'+w.id,'Карточка работы: '+w.name,87,y,1310,54,txt(90,y+23,w.id==='vent'?'Вентиляция и насосы':w.name, w.id==='slab'?14:15,700)+txt(90,y+43,w.phase,12,400,muted)+pill(333,y+14,105,...lab)+box(xx,y+18,barEnd-xx,19,w.status==='risk'?accent:'#43b5b1',5)+txt(xx+9,y+32,date(w.start)+' – '+date(w.end),12,700,w.status==='risk'?surface:'#092b2b'));
+ y+=54;s+=rule(43,y,1397,y);
+ if(open)w.parts.forEach((p,i)=>{const [name,qty,need,event,status]=p,c=status==='risk'?red:status==='attention'?amber:green,yn=y+27,from=calendarX(need),to=event===null?null:calendarX(event);
+ let graphics=guides(y)+rule(86,y,86,yn,'#424547')+rule(86,yn,98,yn,'#424547')+txt(108,y+23,name,15,700)+txt(108,y+43,'Принято '+qty,13,400,muted)+txt(340,yn+5,status==='risk'?'+5 дней':status==='attention'?'Нет даты':status==='done'?'Принято':'В срок',14,700,c);
+ if(to!==null){graphics+=rule(from,yn,to,yn,c)+diamond(from,yn,accent)+dot(to,yn,6,c); if(status==='risk')graphics+=box(from,yn-4,to-from,8,'#be605e',4)+diamond(from,yn,accent)+dot(to,yn,6,red)+txt(from,yn+20,'16.09',12,700,accent,'middle')+txt(to,yn+20,'21.09',12,700,red,'middle')+txt(to+14,yn+5,'На 5 дней позже потребности',14,700,red)}
+ else graphics+=diamond(from,yn,accent)+txt(from+14,yn+5,'Дата поставки уточняется',13,700,amber);
+ s+=action('part-'+w.id+'-'+i,name,43,y,1354,54,graphics);y+=54;s+=rule(43,y,1397,y);
+ })
+ }
+ s+=box(69,end+29,29,9,'#43b5b1',2)+txt(108,end+38,'Период СМР',13,400,muted)+diamond(260,end+32,accent)+txt(276,end+38,'Потребность',13,400,muted)+dot(429,end+32,5,green)+txt(446,end+38,'Поставка / приёмка',13,400,muted);
+ return {w:1440,h:Math.max(850,end+88),s}
+}
+const routeStack=[];
+let importStep='choose', scale='week';
+function importedCalendar(){
+ const step={day:42,week:24,month:14}[scale];
+ const ticks=scale==='day'?Array.from({length:40},(_,i)=>7+i):scale==='week'?[7,14,21,28,35,42]:[7,31];
+ const axis=ticks.map(n=>'<span style="left:'+((n-7)*step+4)+'px">'+(scale==='month'?(n===7?'Сентябрь':'Октябрь'):date(n))+'</span>').join('');
+ const lanes=works.map(w=>'<div class="lane"><button data-act="work-'+w.id+'" aria-label="Подробнее: '+w.name+'" style="left:'+((w.start-7)*step)+'px;width:'+((w.end-w.start+1)*step)+'px">'+w.name+'</button></div>').join('');
+ const buttons=[['day','День'],['week','Неделя'],['month','Месяц']].map(([k,l])=>'<button data-act="scale-'+k+'" aria-pressed="'+(k===scale)+'">'+l+'</button>').join('');
+ return '<h2>График СМР</h2><div class="btnline">Масштаб '+buttons+'</div><div class="timeline"><div style="min-width:'+40*step+'px"><div class="axis">'+axis+'</div>'+lanes+'</div></div>';
+}
+function visit(next,trigger){
+ routeStack.push({screen,trigger,scrollX:document.querySelector('main').scrollLeft,scrollY:window.scrollY});
+ screen=next;
+}
+function workDetails(narrow){
+ const W=narrow?420:640,left=narrow?24:42,right=W-left,w=selected;
+ let s=box(0,0,W,684,surface)+action('back','Назад',left,22,160,40,txt(left+5,49,'‹   Назад',16,700,accent));
+ s+=txt(left,104,'Работа СМР  /  Корпус А',15,700,muted)+txt(left,154,w.name,narrow?(w.id==='vent'?17:21):26,700)+txt(left,190,w.phase,16,400,muted);
+ s+=rule(left,215,right,215)+txt(left,254,'Плановые сроки',16,400,muted)+txt(right,254,date(w.start)+' — '+date(w.end),17,700,ink,'end');
+ s+=txt(left,307,'Обеспечение материалами',16,400,muted)+pill(right-105,287,105,...labels[w.status]);
+ s+=txt(left,376,'Связанные поставки',21,700);
+ w.parts.forEach(([name,qty,need,,status],i)=>{
+   const y=399+i*83, color=status==='risk'?red:status==='attention'?amber:green;
+   s+=action('part-'+w.id+'-'+i,'Открыть поставку: '+name,left,y,right-left,72,
+     box(left,y,right-left,72,'#24272a',8,line)+dot(left+14,y+22,4,color)+txt(left+26,y+28,name,narrow?15:17,700)+txt(left+26,y+54,'К '+date(need)+' · принято '+qty,14,400,muted)+txt(right-16,y+41,'›',22,700,accent,'end'));
+ });
+ return {w:W,h:684,s};
+}
+function importView(){
+ const back='<button data-act="return-board">‹ К объединённому графику</button>';
+ const live='<a href="https://stroihub.site/" target="_blank" rel="noopener noreferrer">Открыть стенд со своим XLSX ↗</a>';
+ let body='';
+ if(importStep==='choose'){
+   body='<h1>Загрузите календарный план</h1><p>На стенде можно выбрать Excel-файл с перечнем работ и сроками. В макете можно пройти этот путь на учебном файле корпуса А.</p><article><h2>Корпус А · График СМР.xlsx</h2><p>Учебный файл · 4 работы</p><button data-act="process-example">Начать разбор примера</button></article>'+live;
+ }else if(importStep==='processing'){
+   body='<h1>Обработка календарного плана</h1><article role="status"><p>Учебный пример · файл выбран</p><h2>Нормализуем календарный план</h2><p>Сопоставляем названия работ и даты.</p></article>';
+ }else{
+   const rows=works.map(w=>'<div class="planrow"><button data-act="work-'+w.id+'">'+w.name+'</button><span>'+date(w.start)+'</span><span>'+date(w.end)+'</span></div>').join('');
+   body='<h1>Календарный план</h1><p>Корпус А · График СМР.xlsx · Учебный результат</p><article><h2>4 работы · 1 предупреждение</h2><div class="planrow tablehead"><span>Работа</span><span>Начало</span><span>Конец</span></div>'+rows+importedCalendar()+'</article><article class="warning"><h2>Требуется проверка</h2><p>Лист «СМР», строка 7. В учебном файле есть строка без названия работы. Она пропущена при разборе.</p></article><div class="btnline"><button data-act="imports">К загрузке</button>'+live+'</div>';
+ }
+ return '<section class="import-view">'+back+body+'</section>';
+}
+function details(isSpec,narrow){
+ const W=narrow?420:640,left=narrow?24:42,right=W-left;
+ const status=part[4],c=status==='risk'?red:status==='attention'?amber:green;
+ const destination=isSpec?'К поставке':routeStack.at(-1)?.screen==='work'?'К работе':'К графику';
+ let s=box(0,0,W,684,surface)+action('back',destination,left,22,260,40,txt(left+5,49,'‹   '+destination,16,700,accent));
+ s+=txt(left,106,isSpec?'Документ StroyCloud':'Партия материала',15,700,muted);
+ if(isSpec){s+=txt(left,157,'Спецификация',31,700)+txt(left,202,selected.name,17,700)+txt(left,239,part[0],17)+rule(left,272,right,272)+txt(left,316,'Редакция',16,400,muted)+txt(right,316,'01',17,700,ink,'end')+txt(left,366,'Статус',16,400,muted)+txt(right,366,'Согласовано',17,700,green,'end')+txt(left,459,'Демонстрационный документ',15,400,muted)}
+ else {s+=txt(left,155,part[0],narrow?23:29,700)+txt(left,191,selected.name,16,400,muted)+rule(left,216,right,216);
+ const rows=[['Принято',part[1]],['Потребность',date(part[2])], [status==='done'?'Принято на объекте':'Ожидаемая поставка',date(part[3])]];
+ rows.forEach(([k,v],i)=>s+=txt(left,261+i*54,k,15,400,muted)+txt(right,261+i*54,v,17,700,ink,'end'));
+ const message=status==='risk'?'40 шт. ожидаются на 5 дней позже':status==='attention'?'Уточнить дату у поставщика':status==='done'?'Партия принята на объекте':'Материал ожидается в срок';
+ s+=box(left,410,right-left,61,status==='risk'?'#392627':faint,10)+txt(left+13,447,message,narrow?14:17,700,c);
+ s+=action('spec','Открыть пример спецификации StroyCloud',left,511,right-left,65,box(left,511,right-left,65,'#203636',10)+txt(left+18,539,'Спецификация · StroyCloud',16,700,accent)+txt(left+18,562,'Открыть пример документа',13,400,muted))}
+ return {w:W,h:684,s}
+}
+let screen=location.hash==='#graph'?'board':'login';let importTimer;
+function render(){
+ document.body.dataset.screen=screen;
+ if(screen==='imports'){document.querySelector('main').innerHTML=importView();return}
+ const narrow=innerWidth<700, detail=['work','detail','spec'].includes(screen);let view=screen==='login'?login(narrow):screen==='board'?board():screen==='work'?workDetails(narrow):details(screen==='spec',narrow);
+ if(detail&&!narrow){let bg=board(),panel=view;view={w:bg.w,h:Math.max(bg.h,850),s:'<g aria-hidden="true" inert="">'+bg.s.replace(/tabindex="0"/g,'tabindex="-1"').replace(/data-act=/g,'data-inactive=')+'</g>'+box(0,0,bg.w,bg.h,'#030607aa')+box(775,0,665,bg.h,surface)+'<g transform="translate(787 45)">'+panel.s+'</g>'}}
+ document.getElementById('app').innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+view.w+' '+view.h+'" font-family="system-ui, Arial, sans-serif" aria-label="СТРОЙHUB">'+box(0,0,view.w,view.h,faint)+view.s+'</svg>'
+}
+function focusAction(id){
+ const main=document.querySelector('main');
+ const target=main.querySelector('[data-act="'+id+'"]')||main.querySelector('[data-act]');
+ target?.focus({preventScroll:true});
+}
+function run(id){
+ let restore;
+ if(id==='back'){
+   restore=routeStack.pop();
+   screen=restore?.screen||'board';
+ }else if(id==='enter'||id==='return-board'||id==='exit'){
+   clearTimeout(importTimer);
+   routeStack.length=0;
+   screen=id==='exit'?'login':'board';
+   if(id==='enter'){filter='all';expanded=new Set(['cols'])}
+ }else if(id==='imports'){
+   importStep='choose';screen='imports';
+ }else if(id.startsWith('scale-')){scale=id.slice(6)}else if(id==='process-example'){
+   importStep='processing';
+   importTimer=setTimeout(()=>{
+     if(screen==='imports'&&importStep==='processing'){importStep='result';render();focusAction('work-slab')}
+   },650);
+ }else if(id==='spec'){visit('spec',id)}
+ else if(id.startsWith('filter-'))filter=id.slice(7);
+ else if(id.startsWith('toggle-')){
+   const k=id.slice(7);
+   if(expanded.has(k))expanded.delete(k);else expanded.add(k);
+ }else if(id.startsWith('work-')){
+   selected=works.find(w=>w.id===id.slice(5));
+   visit('work',id);
+ }else if(id==='risk-detail'||id.startsWith('part-')){
+   const [k,i]=id==='risk-detail'?['cols',0]:id.slice(5).split('-');
+   selected=works.find(w=>w.id===k);part=selected.parts[i];visit('detail',id);
+ }
+ render();
+ if(restore){
+   document.querySelector('main').scrollLeft=restore.scrollX;
+   window.scrollTo(0,restore.scrollY);
+ }else if(!id.startsWith('filter-')&&!id.startsWith('toggle-')){
+   document.querySelector('main').scrollLeft=0;window.scrollTo(0,0);
+ }
+ focusAction(restore?.trigger||(['detail','spec','work'].includes(screen)?'back':id));
+}
+document.addEventListener('click',e=>{const g=e.target.closest('[data-act]');if(g)run(g.dataset.act)});
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&routeStack.length){run('back');return}
+ if((e.key==='Enter'||e.key===' ')&&e.target.matches('g[data-act]')){e.preventDefault();run(e.target.dataset.act)}
+});
+window.addEventListener('resize',render);render();
+</script></body></html>
